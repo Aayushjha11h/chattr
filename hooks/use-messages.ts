@@ -311,13 +311,27 @@ export function useMessages(conversationId: string, type: "private" | "group") {
 
     channelRef.current = channel;
 
+    // Handle visibility change to re-sync when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Tab became visible, re-fetching messages');
+        fetchMessages(0).then((data) => {
+          setMessages(data);
+          console.log('Re-fetched messages after visibility change');
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [conversationId, user?.id, table, idColumn]);
+  }, [conversationId, user?.id, table, idColumn, fetchMessages]);
 
   return { messages, loading, hasMore, loadMore, sendMessage, editMessage, deleteMessage };
 }
