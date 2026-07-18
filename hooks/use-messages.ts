@@ -231,9 +231,13 @@ export function useMessages(conversationId: string, type: "private" | "group") {
     }
   }, [conversationId, type, user, fetchMessages]);
 
-  // Realtime subscription
+  // Realtime subscription - TEMPORARILY DISABLED due to subscription error
+  // TODO: Fix the "cannot add callbacks after subscribe()" error
+  /*
   useEffect(() => {
     if (!user) return;
+
+    const mountedRef = { current: true };
 
     // Remove existing channel before creating new one
     if (channelRef.current) {
@@ -241,7 +245,7 @@ export function useMessages(conversationId: string, type: "private" | "group") {
       channelRef.current = null;
     }
 
-    const channelName = `messages-${conversationId}-${user.id}`;
+    const channelName = `messages-${conversationId}-${user.id}-${Date.now()}`;
     
     const channel = supabase
       .channel(channelName)
@@ -254,6 +258,7 @@ export function useMessages(conversationId: string, type: "private" | "group") {
           filter: `${idColumn}=eq.${conversationId}`,
         },
         (payload) => {
+          if (!mountedRef.current) return;
           console.log('Realtime INSERT received:', payload);
           console.log('About to setMessages with payload.new:', payload.new);
           
@@ -292,6 +297,7 @@ export function useMessages(conversationId: string, type: "private" | "group") {
           filter: `${idColumn}=eq.${conversationId}`,
         },
         (payload) => {
+          if (!mountedRef.current) return;
           console.log('Realtime UPDATE received:', payload);
           setMessages((prev) =>
             prev.map((m) => (m.id === payload.new.id ? { ...m, ...payload.new } : m))
@@ -299,6 +305,7 @@ export function useMessages(conversationId: string, type: "private" | "group") {
         }
       )
       .subscribe((status) => {
+        if (!mountedRef.current) return;
         console.log('Realtime subscription status:', status);
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to channel:', channelName);
@@ -323,6 +330,7 @@ export function useMessages(conversationId: string, type: "private" | "group") {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      mountedRef.current = false;
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -330,6 +338,43 @@ export function useMessages(conversationId: string, type: "private" | "group") {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [conversationId, user?.id, table, idColumn, fetchMessages]);
+  */
+
+  // Fallback: Poll for new messages every 5 seconds
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(() => {
+      fetchMessages(0).then((data) => {
+        setMessages((prev) => {
+          // Only update if there are new messages
+          if (data.length > 0 && data[0]?.id !== prev[0]?.id) {
+            console.log('Polled and found new messages');
+            return data;
+          }
+          return prev;
+        });
+      });
+    }, 5000);
+
+    // Handle visibility change to re-sync when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Tab became visible, re-fetching messages');
+        fetchMessages(0).then((data) => {
+          setMessages(data);
+          console.log('Re-fetched messages after visibility change');
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [conversationId, user?.id, fetchMessages]);
 
   return { messages, loading, hasMore, loadMore, sendMessage, editMessage, deleteMessage };
 }
