@@ -241,8 +241,10 @@ export function useMessages(conversationId: string, type: "private" | "group") {
       channelRef.current = null;
     }
 
+    const channelName = `messages-${conversationId}-${user.id}`;
+    
     const channel = supabase
-      .channel(`messages-${conversationId}-${user.id}-${Math.random()}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -252,6 +254,7 @@ export function useMessages(conversationId: string, type: "private" | "group") {
           filter: `${idColumn}=eq.${conversationId}`,
         },
         async (payload) => {
+          console.log('Realtime INSERT received:', payload);
           const { data } = await supabase
             .from(table)
             .select("*, sender:profiles(id, username, display_name, avatar_url)")
@@ -291,12 +294,20 @@ export function useMessages(conversationId: string, type: "private" | "group") {
           filter: `${idColumn}=eq.${conversationId}`,
         },
         (payload) => {
+          console.log('Realtime UPDATE received:', payload);
           setMessages((prev) =>
             prev.map((m) => (m.id === payload.new.id ? { ...m, ...payload.new } : m))
           );
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to channel:', channelName);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Channel error:', channelName);
+        }
+      });
 
     channelRef.current = channel;
 
@@ -306,7 +317,7 @@ export function useMessages(conversationId: string, type: "private" | "group") {
         channelRef.current = null;
       }
     };
-  }, [conversationId, user?.id]);
+  }, [conversationId, user?.id, table, idColumn]);
 
   return { messages, loading, hasMore, loadMore, sendMessage, editMessage, deleteMessage };
 }
