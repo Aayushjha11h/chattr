@@ -1,0 +1,9 @@
+{
+  "name": "Chatr - Premium Messaging",
+  "short_name": "Chatr",
+  "description": "Real-time messaging with style",
+  "start_url": "/chats",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b"
+}

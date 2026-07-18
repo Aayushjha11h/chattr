@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">chattr</string>
+    <string name="title_activity_main">chattr</string>
+    <string name="package_name">chattr.arwebdevs.app</string>
+    <string name="custom_url_scheme">chattr.arwebdevs.app</string>
+</resources>
