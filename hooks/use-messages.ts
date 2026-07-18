@@ -117,9 +117,32 @@ export function useMessages(conversationId: string, type: "private" | "group") {
 
       if (replyTo) payload.reply_to = replyTo;
 
+      // Optimistic update - add message to UI immediately
+      const tempId = `temp-${Date.now()}`;
+      const tempMessage = {
+        id: tempId,
+        [idColumn]: conversationId,
+        sender_id: user.id,
+        content,
+        type: msgType,
+        created_at: new Date().toISOString(),
+        sender: user,
+        reactions: [],
+        read_receipts: [],
+        currentUserId: user.id,
+        attachments: uploadedAttachments,
+        reply_to: replyTo,
+      };
+
+      setMessages((prev) => [tempMessage, ...prev]);
+
       const { data, error } = await supabase.from(table).insert(payload).select().single();
 
-      if (error) throw error;
+      if (error) {
+        // Remove temp message on error
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        throw error;
+      }
 
       // Insert attachment records
       if (uploadedAttachments.length > 0) {
@@ -132,17 +155,21 @@ export function useMessages(conversationId: string, type: "private" | "group") {
         }
       }
 
-      setMessages((prev) => [
-        {
-          ...data,
-          sender: user,
-          reactions: [],
-          read_receipts: [],
-          currentUserId: user.id,
-          attachments: uploadedAttachments,
-        },
-        ...prev,
-      ]);
+      // Replace temp message with real message
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId
+            ? {
+                ...data,
+                sender: user,
+                reactions: [],
+                read_receipts: [],
+                currentUserId: user.id,
+                attachments: uploadedAttachments,
+              }
+            : m
+        )
+      );
 
       return data;
     },
@@ -241,7 +268,15 @@ export function useMessages(conversationId: string, type: "private" | "group") {
             data.attachments = attachments || [];
 
             setMessages((prev) => {
-              if (prev.some((m) => m.id === data.id)) return prev;
+              // Check if message already exists (from optimistic update)
+              const existingIndex = prev.findIndex((m) => m.id === data.id);
+              if (existingIndex !== -1) {
+                // Replace the temp message with real data
+                const updated = [...prev];
+                updated[existingIndex] = { ...data, currentUserId: user?.id };
+                return updated;
+              }
+              // Add new message if it doesn't exist
               return [{ ...data, currentUserId: user?.id }, ...prev];
             });
           }
