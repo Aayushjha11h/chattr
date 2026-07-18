@@ -69,11 +69,6 @@ export function useFriends() {
 
       if (error) throw error;
       await fetchAll();
-
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
     },
     [user, fetchAll]
   );
@@ -87,11 +82,6 @@ export function useFriends() {
 
       if (error) throw error;
       await fetchAll();
-
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
     },
     [fetchAll]
   );
@@ -101,11 +91,6 @@ export function useFriends() {
       const { error } = await supabase.from("friendships").delete().eq("id", friendshipId);
       if (error) throw error;
       await fetchAll();
-
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
     },
     [fetchAll]
   );
@@ -115,11 +100,6 @@ export function useFriends() {
       const { error } = await supabase.from("friendships").delete().eq("id", friendshipId);
       if (error) throw error;
       await fetchAll();
-
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
     },
     [fetchAll]
   );
@@ -129,11 +109,6 @@ export function useFriends() {
       const { error } = await supabase.from("friendships").delete().eq("id", friendshipId);
       if (error) throw error;
       await fetchAll();
-
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
     },
     [fetchAll]
   );
@@ -153,11 +128,6 @@ export function useFriends() {
 
       if (error) throw error;
       await fetchAll();
-
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
     },
     [user, fetchAll]
   );
@@ -167,31 +137,45 @@ export function useFriends() {
 
     fetchAll();
 
+    // Temporarily disable realtime to prevent subscription errors
+    // TODO: Re-enable after fixing subscription timing issues
+    /*
+    // Clean up existing channel before creating a new one
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
 
+    const channelName = `friendships-${user.id}-${Math.random().toString(36).substring(7)}`;
+
     const channel = supabase
-      .channel(`friendships-${user.id}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "friendships",
-          filter: `or(requester_id.eq.${user.id},addressee_id.eq.${user.id})`,
         },
-        fetchAll
+        (payload: any) => {
+          // Only refetch if the change affects the current user
+          const record = payload.new || payload.old;
+          if (record && (record.requester_id === user.id || record.addressee_id === user.id)) {
+            fetchAll();
+          }
+        }
       )
       .subscribe();
 
     channelRef.current = channel;
 
     return () => {
-      void supabase.removeChannel(channel);
-      channelRef.current = null;
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
+    */
   }, [user?.id]);
 
   return {
