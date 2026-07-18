@@ -253,36 +253,34 @@ export function useMessages(conversationId: string, type: "private" | "group") {
           table,
           filter: `${idColumn}=eq.${conversationId}`,
         },
-        async (payload) => {
+        (payload) => {
           console.log('Realtime INSERT received:', payload);
-          const { data } = await supabase
-            .from(table)
-            .select("*, sender:profiles(id, username, display_name, avatar_url)")
-            .eq("id", payload.new.id)
-            .single();
+          console.log('About to setMessages with payload.new:', payload.new);
+          
+          // Use payload data directly to avoid async delays
+          const messageWithAttachments = {
+            ...payload.new,
+            currentUserId: user?.id,
+            attachments: [] // Will be empty initially, can fetch later if needed
+          };
 
-          if (data) {
-            // Fetch attachments for this message
-            const { data: attachments } = await supabase
-              .from('attachments')
-              .select('*')
-              .eq('message_id', data.id);
-
-            data.attachments = attachments || [];
-
-            setMessages((prev) => {
-              // Check if message already exists (from optimistic update)
-              const existingIndex = prev.findIndex((m) => m.id === data.id);
-              if (existingIndex !== -1) {
-                // Replace the temp message with real data
-                const updated = [...prev];
-                updated[existingIndex] = { ...data, currentUserId: user?.id };
-                return updated;
-              }
-              // Add new message if it doesn't exist
-              return [{ ...data, currentUserId: user?.id }, ...prev];
-            });
-          }
+          console.log('Calling setMessages');
+          setMessages((prev) => {
+            console.log('setMessages callback running, prev length:', prev.length);
+            // Check if message already exists (from optimistic update)
+            const existingIndex = prev.findIndex((m) => m.id === messageWithAttachments.id);
+            if (existingIndex !== -1) {
+              console.log('Replacing existing message at index:', existingIndex);
+              // Replace the temp message with real data - create new array
+              const updated = [...prev];
+              updated[existingIndex] = messageWithAttachments;
+              return updated;
+            }
+            console.log('Adding new message');
+            // Add new message if it doesn't exist - create new array
+            return [messageWithAttachments, ...prev];
+          });
+          console.log('setMessages called');
         }
       )
       .on(
