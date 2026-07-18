@@ -68,6 +68,22 @@ export function useFriends() {
       });
 
       if (error) throw error;
+      
+      // Create notification for the recipient
+      const { data: sender } = await supabase
+        .from("profiles")
+        .select("display_name, username")
+        .eq("id", user?.id)
+        .single();
+      
+      await supabase.from("notifications").insert({
+        recipient_id: userId,
+        title: "New Friend Request",
+        body: `${sender?.display_name || sender?.username || "Someone"} sent you a friend request`,
+        type: "friend_request",
+        data: { requester_id: user?.id },
+      });
+      
       await fetchAll();
     },
     [user, fetchAll]
@@ -75,15 +91,37 @@ export function useFriends() {
 
   const acceptRequest = useCallback(
     async (friendshipId: string) => {
+      const { data: friendship } = await supabase
+        .from("friendships")
+        .select("*")
+        .eq("id", friendshipId)
+        .single();
+      
       const { error } = await supabase
         .from("friendships")
         .update({ status: "accepted" })
         .eq("id", friendshipId);
 
       if (error) throw error;
+      
+      // Create notification for the requester
+      const { data: accepter } = await supabase
+        .from("profiles")
+        .select("display_name, username")
+        .eq("id", user?.id)
+        .single();
+      
+      await supabase.from("notifications").insert({
+        recipient_id: friendship?.requester_id,
+        title: "Friend Request Accepted",
+        body: `${accepter?.display_name || accepter?.username || "Someone"} accepted your friend request`,
+        type: "friend_accepted",
+        data: { friendship_id: friendshipId },
+      });
+      
       await fetchAll();
     },
-    [fetchAll]
+    [user, fetchAll]
   );
 
   const rejectRequest = useCallback(

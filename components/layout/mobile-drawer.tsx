@@ -27,27 +27,17 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-export function MobileDrawer({ profile }: { profile: any }) {
-  const [open, setOpen] = useState(false);
+export function MobileDrawer({ profile, isOpen, onOpenChange }: { profile: any; isOpen: boolean; onOpenChange: (open: boolean) => void }) {
   const pathname = usePathname();
   const { signOut } = useAuth();
 
   return (
-    <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed top-4 left-4 z-50 md:hidden"
-        onClick={() => setOpen(true)}
-      >
-        <Menu className="w-5 h-5" />
-      </Button>
-      <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-72 p-0">
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="h-16 flex items-center px-4 border-b border-border">
-            <Link href="/chats" className="flex items-center gap-2" onClick={() => setOpen(false)}>
+            <Link href="/chats" className="flex items-center gap-2" onClick={() => onOpenChange(false)}>
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
                 <MessageCircle className="w-4 h-4 text-primary-foreground" />
               </div>
@@ -77,7 +67,7 @@ export function MobileDrawer({ profile }: { profile: any }) {
                 <Link
                   key={item.name}
                   href={item.href}
-                  onClick={() => setOpen(false)}
+                  onClick={() => onOpenChange(false)}
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 mx-2 rounded-lg transition-colors",
                     isActive
@@ -102,6 +92,5 @@ export function MobileDrawer({ profile }: { profile: any }) {
         </div>
       </SheetContent>
     </Sheet>
-    </>
   );
 }

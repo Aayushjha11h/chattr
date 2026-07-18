@@ -60,6 +60,9 @@ export function useNotifications() {
 
     fetchNotifications();
 
+    // Temporarily disable realtime - use polling instead
+    // TODO: Re-enable after fixing subscription timing issues
+    /*
     // Remove previous channel if exists (prevents duplicate name error)
     if (channelRef.current) {
       console.log("Removing previous channel");
@@ -103,7 +106,17 @@ export function useNotifications() {
       void supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [user?.id]);
+    */
+
+    // Fallback: Poll for notifications every 10 seconds
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 10000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [user?.id, fetchNotifications]);
 
   return { notifications, unreadCount, markAsRead, markAllAsRead };
 }

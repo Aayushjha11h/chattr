@@ -6,12 +6,12 @@ import { SearchBar } from "./search-bar";
 import { NotificationBell } from "./notification-bell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Phone, Video, Info } from "lucide-react";
+import { ArrowLeft, Phone, Video, Info, Menu } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMobile } from "@/hooks/use-mobile";
 
-export function TopBar({ profile }: { profile: any }) {
+export function TopBar({ profile, mobileMenuOpen, setMobileMenuOpen }: { profile: any; mobileMenuOpen: boolean; setMobileMenuOpen: (open: boolean) => void }) {
   const router = useRouter();
   const pathname = usePathname();
   const isMobile = useMobile();
@@ -20,14 +20,20 @@ export function TopBar({ profile }: { profile: any }) {
   const isChat = pathname.startsWith("/chats/") || pathname.startsWith("/groups/");
 
   return (
-    <header className="h-16 border-b border-border flex items-center px-4 gap-4 bg-card/50 backdrop-blur-xl">
+    <header className="h-16 border-b border-border flex items-center px-4 gap-2 bg-card/50 backdrop-blur-xl">
+      {isMobile && (
+        <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(true)}>
+          <Menu className="w-5 h-5" />
+        </Button>
+      )}
+
       {isChat && isMobile && (
         <Button variant="ghost" size="icon" onClick={() => router.push("/chats")}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
       )}
 
-      <div className="flex-1 max-w-md">
+      <div className="flex-1 max-w-md min-w-0">
         <SearchBar />
       </div>
 
@@ -49,7 +55,7 @@ export function TopBar({ profile }: { profile: any }) {
         <NotificationBell />
 
         <Link href="/profile">
-          <Avatar className="w-8 h-8 cursor-pointer">
+          <Avatar className="w-8 h-8 cursor-pointer flex-shrink-0">
             <AvatarImage src={profile?.avatar_url} />
             <AvatarFallback>{profile?.display_name?.[0] || "U"}</AvatarFallback>
           </Avatar>
