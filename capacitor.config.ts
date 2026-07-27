@@ -2,11 +2,11 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'chattr.arwebdevs.app',
-  appName: 'chattr',
+  appName: 'Chatr',
   webDir: 'public',
   server: {
     androidScheme: 'https',
-    url: 'https://your-app.netlify.app', // Replace with your actual Netlify URL after deployment
+    url: 'https://chattrarwebdevs.netlify.app',
     cleartext: true
   },
   plugins: {
